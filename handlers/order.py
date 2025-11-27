@@ -157,7 +157,7 @@ async def tasks_done(callback: CallbackQuery, state: FSMContext):
 async def skip_details(callback: CallbackQuery, state: FSMContext, bot: Bot):
     """Пропустить подробности"""
     await callback.answer()
-    await process_order_complete(state, bot, callback.message, details=None)
+    await process_order_complete(state, bot, callback.message, details=None, user=callback.from_user)
 
 async def process_details(message: Message, state: FSMContext, bot: Bot):
     """Обработать подробности о проекте"""
@@ -178,7 +178,7 @@ async def process_details(message: Message, state: FSMContext, bot: Bot):
     
     await process_order_complete(state, bot, message, details=details)
 
-async def process_order_complete(state: FSMContext, bot: Bot, message: Message, details=None):
+async def process_order_complete(state: FSMContext, bot: Bot, message: Message, details=None, user=None):
     """Завершить заказ и отправить отчет админу"""
     data = await state.get_data()
     name = data.get('name', NOT_SPECIFIED)
@@ -186,7 +186,9 @@ async def process_order_complete(state: FSMContext, bot: Bot, message: Message, 
     selected_tasks = data.get('selected_tasks', [])
     bot_type = data.get('bot_type')
     
-    user = message.from_user
+    # Используем переданного пользователя или берем из message
+    if user is None:
+        user = message.from_user
     username = f"@{user.username}" if user.username else NOT_SPECIFIED_USERNAME
     
     # Формируем список выбранных задач
