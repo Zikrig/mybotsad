@@ -14,8 +14,4 @@ ENV/
 *.swo
 *~
 .DS_Store
-data/**/*.jpg
-data/**/*.jpeg
-data/**/*.png
-data/**/*.gif
 
