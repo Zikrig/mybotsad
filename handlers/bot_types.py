@@ -36,23 +36,55 @@ async def show_bot_type_detail(callback: CallbackQuery):
         photos.sort()
         
         if photos:
-            # Отправляем все фото медиа-группой (максимум 10 фото)
-            media_group = []
-            for i, photo_name in enumerate(photos[:10]):  # Telegram позволяет максимум 10 фото в группе
-                photo_path = os.path.join(photos_dir, photo_name)
-                photo_file = FSInputFile(photo_path)
-                # Caption добавляем только к первому фото
-                if i == 0:
-                    media_group.append(InputMediaPhoto(media=photo_file, caption=text))
+            try:
+                # Отправляем все фото медиа-группой (максимум 10 фото)
+                media_group = []
+                for i, photo_name in enumerate(photos[:10]):  # Telegram позволяет максимум 10 фото в группе
+                    photo_path = os.path.join(photos_dir, photo_name)
+                    # Проверяем, что файл существует
+                    if not os.path.exists(photo_path):
+                        print(f"Файл не найден: {photo_path}")
+                        continue
+                    photo_file = FSInputFile(photo_path)
+                    # Caption добавляем только к первому фото
+                    if i == 0:
+                        media_group.append(InputMediaPhoto(media=photo_file, caption=text))
+                    else:
+                        media_group.append(InputMediaPhoto(media=photo_file))
+                
+                if media_group:
+                    # Удаляем предыдущее сообщение перед отправкой медиа-группы
+                    try:
+                        await callback.message.delete()
+                    except:
+                        pass  # Игнорируем ошибку, если сообщение уже удалено
+                    
+                    # Отправляем медиа-группу через бота
+                    await callback.bot.send_media_group(
+                        chat_id=callback.message.chat.id,
+                        media=media_group
+                    )
+                    # Отправляем кнопки отдельным сообщением
+                    await callback.bot.send_message(
+                        chat_id=callback.message.chat.id,
+                        text=SELECT_ACTION,
+                        reply_markup=get_bot_type_detail_keyboard(bot_type)
+                    )
                 else:
-                    media_group.append(InputMediaPhoto(media=photo_file))
-            
-            await callback.message.answer_media_group(media=media_group)
-            # Отправляем кнопки отдельным сообщением
-            await callback.message.answer(
-                SELECT_ACTION,
-                reply_markup=get_bot_type_detail_keyboard(bot_type)
-            )
+                    # Если не удалось создать медиа-группу, отправляем текст
+                    await callback.message.answer(
+                        text,
+                        reply_markup=get_bot_type_detail_keyboard(bot_type)
+                    )
+            except Exception as e:
+                print(f"Ошибка при отправке фотографий для {bot_type}: {e}")
+                import traceback
+                traceback.print_exc()
+                # В случае ошибки отправляем текст
+                await callback.message.answer(
+                    text,
+                    reply_markup=get_bot_type_detail_keyboard(bot_type)
+                )
         else:
             await callback.message.answer(
                 text,
